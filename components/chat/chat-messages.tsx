@@ -1,0 +1,174 @@
+"use client";
+
+import React, { Fragment, useRef, ElementRef, useMemo } from "react";
+import { format } from "date-fns";
+import { Member, Message, Profile } from "@prisma/client";
+import { Loader2, ServerCrash } from "lucide-react";
+
+import { ChatWelcome } from "@/components/chat/chat-welcome";
+import { ChatItem } from "./chat-item";
+import { useChatQuery } from "@/hooks/use-chat-query";
+import { useChatScroll } from "@/hooks/use-chat-scroll";
+import { useChatSocket } from "@/hooks/use-chat-socket";
+
+interface ChatMessagesProps {
+  name: string;
+  member: Member;
+  chatId: string;
+  apiUrl: string;
+  socketUrl: string;
+  socketQuery: Record<string, string>;
+  paramKey: "channelId" | "conversationId";
+  paramValue: string;
+  type: "channel" | "conversation";
+}
+
+type MessageWithMemberWithProfile = Message & {
+  member: Member & {
+    profile: Profile;
+  };
+};
+
+const DATE_FORMAT = "d MMM yyyy, HH:mm";
+
+export function ChatMessages({
+  name,
+  member,
+  chatId,
+  apiUrl,
+  socketUrl,
+  socketQuery,
+  paramKey,
+  paramValue,
+  type,
+}: ChatMessagesProps) {
+
+  const queryKey = `chat:${chatId}`;
+  const addKey = `chat:${chatId}:messages`;
+  const updateKey = `chat:${chatId}:messages:update`;
+
+  const chatRef = useRef<ElementRef<"div">>(null);
+  const bottomRef = useRef<ElementRef<"div">>(null);
+
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, status } =
+    useChatQuery({
+      queryKey,
+      apiUrl,
+      paramKey,
+      paramValue,
+    });
+
+  useChatSocket({
+    queryKey,
+    addKey,
+    updateKey,
+  });
+
+  const messageCount = useMemo(() => {
+    return (
+      data?.pages?.reduce((total, page) => total + page.items.length, 0) ?? 0
+    );
+  }, [data]);
+
+  useChatScroll({
+    chatRef,
+    bottomRef,
+    loadMore: fetchNextPage,
+    shouldLoadMore: !isFetchingNextPage && !!hasNextPage,
+    count: messageCount,
+  });
+
+  if (status === "pending") {
+    return (
+      <div className="flex flex-col flex-1 justify-center items-center">
+        <Loader2 className="h-7 w-7 text-zinc-400 animate-spin my-4" />
+        <p className="text-xs text-zinc-500">Loading messages...</p>
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex flex-col flex-1 justify-center items-center">
+        <ServerCrash className="h-7 w-7 text-zinc-500 my-4" />
+        <p className="text-xs text-zinc-500">Something went wrong!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={chatRef}
+      className="
+        flex-1
+        flex
+        flex-col
+        px-8
+        py-10
+        overflow-y-auto
+        scroll-smooth
+        bg-background
+
+      "
+    >
+      {!hasNextPage && <div className="flex-1" />}
+      {!hasNextPage && <ChatWelcome name={name} type={type} />}
+
+      {hasNextPage && (
+        <div className="flex justify-center mb-6">
+          {isFetchingNextPage ? (
+            <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" />
+          ) : (
+            <button
+              onClick={() => fetchNextPage()}
+              className="text-xs px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 transition"
+            >
+              Load previous messages
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-col-reverse mt-auto space-y-reverse space-y-4">
+        {data?.pages?.map((group, index) => (
+          <Fragment key={index}>
+            {group.items.map(
+              (message: MessageWithMemberWithProfile, i:number) => {
+
+                const previousMessage = group.items[i + 1];
+
+                const isGrouped =
+                  previousMessage &&
+                  previousMessage.member.id === message.member.id;
+
+                return (
+                  <ChatItem
+                    key={message.id}
+                    id={message.id}
+                    currentMember={member}
+                    member={message.member}
+                    content={message.content}
+                    fileUrl={message.fileUrl}
+                    deleted={message.deleted}
+                    timestamp={format(
+                      new Date(message.createdAt),
+                      DATE_FORMAT
+                    )}
+                    isUpdated={
+                      message.updatedAt !== message.createdAt
+                    }
+                    socketUrl={socketUrl}
+                    socketQuery={socketQuery}
+                    isGrouped={isGrouped}
+                  />
+                );
+              }
+            )}
+          </Fragment>
+        ))}
+      </div>
+
+      <div ref={bottomRef} />
+    </div>
+  );
+}
