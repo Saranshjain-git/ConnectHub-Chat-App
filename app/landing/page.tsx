@@ -250,7 +250,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <span className="text-2xl font-semibold tracking-tight bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-                Cardiac
+                ConnectHub
               </span>
             </Link>
 
@@ -790,7 +790,7 @@ export default function LandingPage() {
                 <div className="bg-gradient-to-br from-[#7C5CF0] to-[#B45F2E] p-3 rounded-2xl shadow-xl">
                   <MessageSquare className="size-6" strokeWidth={2.5} />
                 </div>
-                <span className="text-2xl font-bold">Cardiac</span>
+                <span className="text-2xl font-bold">ConnectHub</span>
               </Link>
               <p className="text-zinc-400 mb-8 leading-relaxed max-w-sm">
                 The professional standard for real‑time communication. Built for
@@ -849,7 +849,7 @@ export default function LandingPage() {
           </div>
 
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-zinc-500">
-            <p>© 2024 Cardiac Technologies Inc. All rights reserved.</p>
+            <p>© 2026 ConnectHub Technologies Inc. All rights reserved.</p>
             <div className="flex gap-8">
               {["Privacy Policy", "Terms of Service", "Security"].map(
                 (item) => (

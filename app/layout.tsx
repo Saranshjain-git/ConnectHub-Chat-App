@@ -14,7 +14,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CardiaC",
+  title: "ConnectHub",
   description: "Premium Discord Style UI",
 };
 
